@@ -1,0 +1,33 @@
+{{ config(materialized='table') }}
+
+with junk as (
+    select distinct
+        COALESCE(market_segment, 'Unknown')         as market_segment,
+        COALESCE(distribution_channel, 'Unknown')   as distribution_channel,
+        customer_type,
+        deposit_type,
+        COALESCE(meal, 'None')                      as meal
+    from {{ ref('stg_bookings') }}
+),
+
+final as (
+    select
+        ROW_NUMBER() OVER (
+            ORDER BY market_segment, distribution_channel, customer_type, deposit_type, meal
+        )                                                               as booking_attr_key,
+        market_segment,
+        distribution_channel,
+        customer_type,
+        deposit_type,
+        meal,
+        CASE meal
+            WHEN 'BB'   THEN 'Bed & Breakfast'
+            WHEN 'HB'   THEN 'Half Board'
+            WHEN 'FB'   THEN 'Full Board'
+            WHEN 'SC'   THEN 'Self Catering'
+            ELSE             'None'
+        END                                                             as meal_name
+    from junk
+)
+
+select * from final
