@@ -1,0 +1,109 @@
+{{ config(materialized='view') }}
+
+with bookings as (
+    select * from {{ ref('stg_bookings') }}
+),
+
+flagged as (
+    select
+        -- ── passthrough from staging ──────────────────────────────────────────
+        hotel,
+        is_canceled,
+        lead_time,
+        arrival_date_year,
+        arrival_date_month,
+        arrival_date_week_number,
+        arrival_date_day_of_month,
+        arrival_date,
+        stays_in_weekend_nights,
+        stays_in_week_nights,
+        total_nights,
+        adults,
+        children,
+        babies,
+        total_guests,
+        meal,
+        meal_name,
+        country,
+        country_name,
+        continent,
+        market_segment,
+        distribution_channel,
+        is_repeated_guest,
+        previous_cancellations,
+        previous_bookings_not_canceled,
+        reserved_room_type,
+        assigned_room_type,
+        booking_changes,
+        deposit_type,
+        agent,
+        company,
+        days_in_waiting_list,
+        customer_type,
+        adr,
+        required_car_parking_spaces,
+        total_of_special_requests,
+        reservation_status,
+        reservation_status_date,
+
+        -- ── individual quality flags (1 = flag triggered) ─────────────────────
+
+        -- 180 rows: logically impossible — no guests at all
+        CASE
+            WHEN adults = 0 AND children = 0 AND babies = 0
+                THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+        END                                                             as is_zero_guest,
+
+        -- 10 rows: likely group contract, distorts per-booking averages
+        CASE
+            WHEN adults > 20
+                THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+        END                                                             as is_group_booking,
+
+        -- 1 row: $5,400 ADR — far above avg $101, skews revenue totals
+        CASE
+            WHEN adr > 1000
+                THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+        END                                                             as is_adr_outlier,
+
+        -- 1,747 rows: active booking at zero rate — needs business confirmation
+        CASE
+            WHEN is_canceled = 0 AND adr = 0
+                THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+        END                                                             as is_complimentary_candidate,
+
+        -- ── combined validity (0 = any flag triggered; filter before analysis) ─
+        CASE
+            WHEN adults = 0 AND children = 0 AND babies = 0 THEN CAST(0 AS BIT)
+            WHEN adults > 20                                 THEN CAST(0 AS BIT)
+            WHEN adr > 1000                                  THEN CAST(0 AS BIT)
+            WHEN is_canceled = 0 AND adr = 0                THEN CAST(0 AS BIT)
+            ELSE                                                  CAST(1 AS BIT)
+        END                                                             as is_valid_booking,
+
+        -- ── derived booking attributes ────────────────────────────────────────
+        CASE
+            WHEN reserved_room_type != assigned_room_type
+                THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+        END                                                             as is_room_type_changed,
+
+        -- prior cancellations ÷ all prior bookings; NULL when no history
+        CAST(
+            previous_cancellations * 1.0
+            / NULLIF(previous_cancellations + previous_bookings_not_canceled, 0)
+            AS DECIMAL(5, 4)
+        )                                                               as historical_cancellation_rate
+
+    from bookings
+),
+
+final as (
+    select * from flagged
+)
+
+select * from final
