@@ -1,0 +1,102 @@
+{{ config(materialized='table') }}
+
+with bookings as (
+    -- excludes: zero-guest (180), group bookings (10), ADR outliers (1), complimentary candidates (1,747)
+    select * from {{ ref('int_bookings_flagged') }}
+    where is_valid_booking = 1
+),
+
+dim_hotels as (
+    select * from {{ ref('dim_hotels') }}
+),
+
+dim_reserved_room as (
+    select * from {{ ref('dim_reserved_room') }}
+),
+
+dim_assigned_room as (
+    select * from {{ ref('dim_assigned_room') }}
+),
+
+dim_country as (
+    select * from {{ ref('dim_country') }}
+),
+
+dim_arrival_date as (
+    select * from {{ ref('dim_arrival_date') }}
+),
+
+dim_status_date as (
+    select * from {{ ref('dim_status_date') }}
+),
+
+dim_booking_attributes as (
+    select * from {{ ref('dim_booking_attributes') }}
+),
+
+final as (
+    select
+        ROW_NUMBER() OVER (
+            ORDER BY b.reservation_status_date, b.hotel
+        )                                                               as booking_key,
+
+        -- ── foreign keys ──────────────────────────────────────────────────────
+        h.hotel_key,
+        d_arr.arrival_date_key,
+        d_sts.status_date_key,
+        r_res.reserved_room_key,
+        r_asgn.assigned_room_key,
+        c.country_key,
+        ba.booking_attr_key,
+
+        -- ── flags ─────────────────────────────────────────────────────────────
+        b.is_canceled,
+        CAST(b.is_canceled AS FLOAT)                                    as is_canceled_float,
+        CAST(1 - b.is_canceled AS FLOAT)                                as confirmed_float,
+        b.is_repeated_guest,
+        CAST(b.is_repeated_guest AS INT)                                as is_repeated_guest_int,
+        b.is_room_type_changed,
+        CAST(b.is_room_type_changed AS INT)                             as is_room_type_changed_int,
+
+        -- ── measures ──────────────────────────────────────────────────────────
+        b.lead_time,
+        b.booking_changes,
+        b.stays_in_weekend_nights,
+        b.stays_in_week_nights,
+        b.total_nights,
+        b.adults,
+        b.children,
+        b.babies,
+        b.total_guests,
+        b.previous_cancellations,
+        b.previous_bookings_not_canceled,
+        b.historical_cancellation_rate,
+        b.days_in_waiting_list,
+        b.adr,
+        CASE
+            WHEN b.is_canceled = 1 THEN CAST(0 AS DECIMAL(12, 2))
+            ELSE CAST(b.adr AS DECIMAL(12, 2))
+        END                                                             as adr_adjusted,
+        CASE
+            WHEN b.is_canceled = 0 AND b.total_nights > 0
+                THEN CAST(b.adr * b.total_nights AS DECIMAL(12, 2))
+            ELSE CAST(0 AS DECIMAL(12, 2))
+        END                                                             as estimated_revenue,
+        b.required_car_parking_spaces,
+        b.total_of_special_requests
+
+    from bookings b
+    left join dim_hotels            h      on b.hotel                                       = h.hotel_name
+    left join dim_arrival_date      d_arr  on b.arrival_date                                = d_arr.full_date
+    left join dim_status_date       d_sts  on b.reservation_status_date                     = d_sts.full_date
+    left join dim_reserved_room     r_res  on b.reserved_room_type                          = r_res.room_type_code
+    left join dim_assigned_room     r_asgn on b.assigned_room_type                          = r_asgn.room_type_code
+    left join dim_country           c      on COALESCE(b.country, 'Unknown')                = c.country_code
+    left join dim_booking_attributes ba    on COALESCE(b.market_segment, 'Unknown')         = ba.market_segment
+                                          and COALESCE(b.distribution_channel, 'Unknown')   = ba.distribution_channel
+                                          and b.customer_type                               = ba.customer_type
+                                          and b.deposit_type                                = ba.deposit_type
+                                          and COALESCE(b.meal, 'None')                      = ba.meal
+)
+
+select * from final
