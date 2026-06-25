@@ -1,0 +1,656 @@
+Hotel Bookings — Business Insights & Glossary
+
+Project: Test_HotelBookings
+
+Business Domain: Hotel Bookings Management — City & Resort Hotels (Portugal)
+
+Data window: July 2015 – August 2017
+
+Documented: 2026-06-19
+
+
+
+Part 1 — Business Overview
+
+The dataset covers two hotels — a City Hotel and a Resort Hotel — located in Portugal. Together they process bookings from guests originating in 178 countries across all 7 continents, with Europe accounting for the overwhelming majority of demand.
+
+
+Business Model
+• Inbound hospitality — primarily serves international leisure and business travellers arriving in Portugal
+• Dual-property — two hotels with distinct profiles: City Hotel targets shorter urban stays at higher rates; Resort Hotel caters to longer leisure stays
+• OTA-dependent — 68% of bookings flow through Online or Offline Travel Agencies
+• High-cancellation environment — overall cancellation rate of 37.58%, well above the hospitality industry benchmark of 20–30%
+• Primarily European demand — Portugal, UK, France, Spain, and Germany account for the majority of bookings and revenue
+
+At a Glance
+
+Metric	Value
+Total Bookings (mart)	117,576
+Confirmed Bookings	73,388 (62.42%)
+Canceled Bookings	44,188 (37.58%)
+Total Estimated Revenue	$25,986,976
+Average Daily Rate (ADR)	$103.34
+ADR Adjusted (excl. cancellations)	$63.91
+Average Lead Time	105 days
+Average Length of Stay	3.45 nights
+Average Party Size	1.97 guests
+Repeated Guests	3,292 (2.80%)
+Room Type Changes	14,113 (12.00%)
+Avg Special Requests per Booking	0.57
+Guest Origin Countries	178
+Market Segments	7
+Hotels	2 (City Hotel, Resort Hotel)
+
+
+Part 2 — Business Insights
+
+Insight 1: Cancellation Rate Is Structurally High — 37.58%
+
+At 37.58%, the cancellation rate is nearly double the lower end of the hospitality industry benchmark (20–30%). This is not an anomaly — it is a structural feature of the booking mix.
+
+
+Hotel	Total Bookings	Cancellations	Cancel Rate
+City Hotel	78,197	33,078	42.30%
+Resort Hotel	39,379	11,110	28.21%
+Overall	117,576	44,188	37.58%
+
+City Hotel's cancellation rate is 50% higher than Resort Hotel's. As City Hotel represents 66.5% of total bookings, it disproportionately pulls up the blended rate.
+
+
+Business implication: Any revenue forecast using total ADR x total bookings will overstate actual revenue by ~37.58%. Always use adr_adjusted and estimated_revenue (set to $0 for canceled bookings) for revenue projections. Apply WHERE is_canceled = false for all operational metrics.
+
+
+
+Insight 2: Lead Time Is a Near-Perfect Cancellation Predictor
+
+The relationship between booking lead time and cancellation rate is near-linear and extremely strong.
+
+
+Lead Time Window	Bookings	Cancellation Rate	Avg ADR	Avg Nights
+Same Day (0 days)	5,797	7.19%	$91.12	1.63
+1-30 days	31,569	21.38%	$104.47	2.75
+31-90 days	29,322	37.99%	$107.19	3.58
+91-180 days	26,321	44.90%	$109.60	4.09
+181-365 days	21,436	55.66%	$95.55	4.15
+365+ days	3,131	68.00%	$79.24	2.59
+
+Bookings made more than a year in advance cancel at 9.5x the rate of same-day bookings. The highest-ADR bookings (91-180 day window, $109.60) sit squarely in the middle-risk cancellation band.
+
+
+Business implication: Lead time should be the primary input in dynamic deposit policy. Requiring a non-refundable or partial deposit for bookings over 90 days out could significantly reduce the cancellation tail. Over half (55.66%) of bookings in the 181-365 day band will not convert.
+
+
+
+Insight 3: City Hotel Carries 2x More Volume and 50% More Cancellation Risk
+
+Metric	City Hotel	Resort Hotel
+Total Bookings	78,197 (66.5%)	39,379 (33.5%)
+Cancellation Rate	42.30%	28.21%
+Raw ADR	$106.74	$96.59
+Total Revenue	$14,385,342 (55.4%)	$11,601,634 (44.6%)
+Avg Length of Stay	2.99 nights	4.37 nights
+Avg Lead Time	110.9 days	93.4 days
+
+Despite a higher raw ADR, City Hotel's revenue advantage is compressed by its 42.3% cancellation rate. Resort Hotel guests book closer to arrival (93 vs 111 days), stay 46% longer, and cancel far less — a more predictable revenue profile.
+
+
+Business implication: Resort Hotel is the more stable revenue base. City Hotel drives volume but requires aggressive revenue management (overbooking, shorter cancellation windows, deposit requirements) to compensate for its cancellation exposure.
+
+
+
+Insight 4: Portugal Generates the Most Bookings — But Has the Worst Cancellation Rate
+
+Country	Bookings	Revenue	Cancel Rate	Avg ADR
+Portugal	47,190	$5,540,432	58.26%	$94.65
+United Kingdom	12,053	$4,110,897	20.34%	$96.62
+France	10,360	$3,098,418	18.66%	$110.19
+Spain	8,489	$2,246,305	25.64%	$118.07
+Germany	7,246	$2,068,220	16.81%	$104.99
+Ireland	3,369	$1,240,002	24.70%	$98.37
+Italy	3,750	$866,439	35.55%	$114.43
+China	2,272	$508,511	31.51%	$109.79
+United States	2,086	$490,513	24.02%	$123.64
+Brazil	2,211	$474,783	37.54%	$111.61
+
+Portuguese-origin bookings cancel at 3.5x the rate of German guests (16.81%) and 2.9x UK guests (20.34%). Northern European markets are significantly more reliable converters.
+
+
+Business implication: Domestic bookings likely include many opportunistic "hold and decide" reservations exploiting free cancellation policies. Deposit requirements for Portuguese-origin bookings could meaningfully improve confirmed revenue without reducing gross booking volume.
+
+
+
+Insight 5: Online Travel Agencies Drive Volume but Carry Outsized Cancellation Risk
+
+Market Segment	Bookings	Share	Cancel Rate	Revenue	Avg ADR
+Online TA	56,105	47.7%	36.96%	$13,707,139	$117.95
+Offline TA/TO	23,910	20.3%	34.70%	$5,659,292	$88.25
+Groups	19,578	16.6%	61.77%	$1,869,130	$80.43
+Direct	12,387	10.5%	15.57%	$4,097,842	$117.45
+Corporate	5,215	4.4%	19.00%	$577,892	$70.42
+Aviation	232	0.2%	22.41%	$70,868	$102.30
+Complementary	147	0.1%	60.54%	$4,813	$14.59
+
+Direct bookings deliver the same ADR as Online TA ($117.45 vs $117.95) at less than half the cancellation rate (15.57% vs 36.96%).
+
+
+Business implication: Shifting even 5% of volume from Online TA to Direct would meaningfully reduce the overall cancellation rate. Lower OTA commission plus lower cancel rate makes the ROI on loyalty programs and direct booking engine investment highly favourable.
+
+
+
+Insight 6: Non-Refundable Deposits Show a 99.36% Cancellation Rate — A Revenue Recognition Gap
+
+Deposit Type	Bookings	Canceled	Cancel Rate	Revenue Recorded
+Non Refund	14,586	14,493	99.36%	$17,110
+No Deposit	102,828	29,659	28.84%	$25,940,879
+Refundable	162	36	22.22%	$28,987
+
+When a Non Refund booking is canceled, estimated_revenue is set to $0 by design. However, a Non Refund booking means the hotel keeps the deposit regardless of cancellation. The mart therefore records $0 for bookings where actual cash was collected.
+
+
+Business implication: The $25,986,976 total estimated_revenue understates true hotel revenue by the full value of deposits kept on Non Refund cancellations. If actual P&L reporting is required, revenue from non-refundable cancellations must be captured separately in the mart layer.
+
+
+
+Insight 7: ADR Has Grown 29% Across the Data Window — With a Consistent Summer Peak
+
+Period	Avg Monthly ADR
+2015 H2 (Jul-Dec)	$87.50
+2016 H1 (Jan-Jun)	$85.59
+2016 H2 (Jul-Dec)	$109.04
+2017 H1 (Jan-Jun)	$99.36
+2017 H2 (Jul-Aug only)	$154.64
+
+Summer ADR has escalated significantly year-over-year:
+
+
+Month	2015	2016	2017	Growth
+July	$99.89	$127.16	$144.13	+44%
+August	$108.46	$144.07	$165.15	+52%
+
+The lowest ADR month was November 2015 ($62.23). The highest was August 2017 ($165.15) — a 165% spread between seasonal trough and peak.
+
+
+Business implication: Summer pricing power is well established and growing. The November-January trough ($62-$88 ADR) is the primary revenue opportunity — promotions, package bundles, or conference/event targeting could lift the winter floor rate.
+
+
+
+Insight 8: Bed and Breakfast Dominates — But Full Board Cancels at 61%
+
+Meal Plan	Bookings	Share	Cancel Rate	Avg ADR	Revenue
+Bed and Breakfast (BB)	90,955	77.36%	37.93%	$100.83	$18,669,541
+Half Board (HB)	14,277	12.14%	34.88%	$121.87	$5,034,460
+Self Catering (SC)	10,428	8.87%	37.84%	$100.24	$1,669,809
+None	1,133	0.96%	25.24%	$94.87	$381,491
+Full Board (FB)	783	0.67%	61.05%	$111.13	$231,675
+
+Half Board guests pay a 21% ADR premium over Bed and Breakfast ($121.87 vs $100.83) and cancel slightly less (34.88% vs 37.93%). Full Board — the most comprehensive package — paradoxically cancels at 61%, the highest rate of any meal type.
+
+
+Business implication: Half Board is the optimal upsell target — higher ADR, lower cancellation, meaningful volume. Full Board bookings carry significant risk; pair FB offerings with tighter deposit requirements or shorter cancellation windows.
+
+
+
+Insight 9: Room Type A Accounts for 72% of Bookings — But Gets Reassigned 14% of the Time
+
+Room Type	Bookings	Share	Change Rate	Avg ADR	Cancel Rate
+A	84,691	72.0%	13.93%	$92.12	39.69%
+D	19,014	16.2%	7.22%	$121.86	32.09%
+E	6,425	5.5%	8.67%	$126.60	29.70%
+F	2,831	2.4%	5.93%	$171.60	31.08%
+G	2,013	1.7%	1.89%	$183.08	37.90%
+B	1,086	0.9%	11.42%	$92.97	33.79%
+C	915	0.8%	4.37%	$163.19	33.66%
+H	595	0.5%	2.52%	$190.12	41.18%
+
+Premium room types F, G, and H command a 75-107% ADR premium over the baseline Room A ($92.12). Premium rooms also have the lowest reassignment rates (1.89-5.93%), meaning guests who book premium rooms reliably receive what they reserved.
+
+
+Business implication: 11,794 Room A guests received a different room type — the scale suggests systematic reassignment (upgrades or overbook management). Logging the upgrade direction (e.g. A to D, A to E) would quantify upsell realisation and inform inventory allocation strategy.
+
+
+
+Insight 10: Transient Guests Drive Volume — Group Guests Are the Most Reliable
+
+Customer Type	Bookings	Share	Cancel Rate	Avg ADR	Avg Lead Time	Avg Nights
+Transient	88,272	75.1%	41.34%	$108.56	94.4 days	3.48
+Transient-Party	24,702	21.0%	25.85%	$87.55	137.8 days	3.07
+Contract	4,053	3.4%	31.14%	$88.05	143.3 days	5.34
+Group	549	0.5%	8.74%	$87.73	48.9 days	2.83
+
+Transient guests (75.1% of bookings) cancel at 41.34%, pulling the blended rate above 37%. Group bookings (0.5% of volume) cancel at only 8.74% — the lowest of any customer type. Contract customers stay the longest (5.34 nights) and represent a reliable extended-stay segment.
+
+
+Business implication: Contract and Group customers are disproportionately valuable per booking — they stay longer (Contract) or almost never cancel (Group). Growing direct corporate partnerships and group event business is a structurally higher-quality revenue strategy than growing Transient OTA volume.
+
+
+
+Part 3 — Business Glossary
+
+A
+
+ADR — Average Daily Rate
+
+The average revenue earned per occupied room per night, before adjustment for cancellations.
+
+• Formula: AVG(adr) from fct_bookings
+• Column: fct_bookings.adr (decimal(10,2))
+• Benchmark: $103.34 overall | City Hotel $106.74 | Resort Hotel $96.59
+• Note: 178 bookings have adr = 0 (complimentary stays). Exclude with WHERE adr > 0 for rate-only analysis.
+
+ADR Adjusted
+
+ADR recalculated with canceled bookings set to $0; reflects only confirmed revenue-generating stays.
+
+• Formula: CASE WHEN is_canceled = false THEN adr ELSE 0 END
+• Column: fct_bookings.adr_adjusted
+• Benchmark: $63.91 overall | City Hotel $62.49 | Resort Hotel $66.72
+• Note: The gap between ADR and ADR Adjusted measures the per-room dollar cost of cancellations. City Hotel gap ($44.25) is materially larger than Resort Hotel ($29.88).
+
+Arrival Date Key
+
+Integer surrogate key in YYYYMMDD format linking fct_bookings to dim_arrival_date.
+
+• Column: fct_bookings.arrival_date_key (int)
+• Example: 20160715 = July 15, 2016
+• Note: Constructed in staging from three separate source columns: arrival_date_year, arrival_date_month, arrival_date_day_of_month.
+
+Assigned Room Type
+
+The room type code actually given to the guest at check-in — may differ from the reserved room type.
+
+• Column: fct_bookings.assigned_room_key FK to dim_assigned_room
+• Note: dim_assigned_room contains 12 room type codes vs dim_reserved_room's 10 — 2 assigned types have never appeared as reserved room types.
+
+
+B
+
+Babies
+
+Number of infants (typically under 2 years old) in the booking party. Sub-component of total_guests.
+
+• Column: fct_bookings.babies (int)
+
+Bed and Breakfast (BB)
+
+The most common meal plan — accommodation plus breakfast only. Represents 77.36% of all bookings.
+
+• Column: dim_booking_attributes.meal = 'BB', meal_name = 'Bed & Breakfast'
+• Avg ADR: $100.83 | Cancel Rate: 37.93%
+
+Booking Changes
+
+Number of modifications made to the booking after initial confirmation (date, room type, guest count, etc.).
+
+• Column: fct_bookings.booking_changes (tinyint)
+• Note: Higher change counts may correlate with lower cancellation risk — an actively engaged guest is more likely to complete their stay.
+
+Booking Key
+
+Surrogate primary key for fct_bookings. Auto-generated bigint with no business meaning.
+
+• Column: fct_bookings.booking_key (bigint)
+• Use: COUNT(booking_key) for total booking volume.
+
+
+C
+
+Cancellation Rate
+
+The proportion of total bookings that were canceled.
+
+• Formula: SUM(is_canceled_float) / COUNT(booking_key) x 100
+• Benchmark: 37.58% overall — well above the industry norm of 20-30%
+• By hotel: City Hotel 42.30% | Resort Hotel 28.21%
+• By segment: Groups 61.77% | Online TA 36.96% | Corporate 19.00% | Direct 15.57%
+
+Children
+
+Number of children (typically 2-12 years) in the booking party. Sub-component of total_guests.
+
+• Column: fct_bookings.children (int)
+
+City Hotel
+
+The larger of the two hotels. Urban setting; shorter average stays (2.99 nights); higher raw ADR ($106.74); higher cancellation rate (42.30%). Represents 66.5% of all bookings and 55.4% of estimated revenue.
+
+• Dim reference: dim_hotels.hotel_name = 'City Hotel', hotel_type = 'City'
+
+Complementary
+
+A market segment for complimentary (free) stays — ADR averages $14.59 and cancel rate is 60.54%. Only 147 bookings. Exclude from rate and revenue analyses.
+
+
+Contract
+
+Customer type for guests on fixed recurring agreements (corporate accounts, extended partnerships). 4,053 bookings (3.4%), averaging 5.34 nights — the longest stay profile of any customer type.
+
+• Column: dim_booking_attributes.customer_type = 'Contract'
+
+Country Key
+
+Foreign key in fct_bookings linking to dim_country.
+
+• Column: fct_bookings.country_key (bigint) FK to dim_country.country_key
+• Coverage: 178 countries. Includes continent = 'Unknown' and continent = 'Antarctica' — treat as data quality issues; exclude from geographic analysis.
+
+
+D
+
+Days in Waiting List
+
+Number of days the booking spent on a waiting list before being confirmed.
+
+• Column: fct_bookings.days_in_waiting_list (int)
+• Benchmark: Most bookings = 0 (direct confirmation). Non-zero values are a demand pressure signal useful for identifying peak dates where yield management is most critical.
+
+Deposit Type
+
+The type of upfront payment required at the time of booking.
+
+• Column: dim_booking_attributes.deposit_type
+• Values:
+- No Deposit — 102,828 bookings (87.5%), 28.84% cancel rate
+
+- Non Refund — 14,586 bookings (12.4%), 99.36% cancel rate — see Insight 6
+
+- Refundable — 162 bookings (0.1%), 22.22% cancel rate
+
+• Critical note: Revenue from kept non-refundable deposits on canceled bookings is NOT captured in estimated_revenue.
+
+Distribution Channel
+
+How the booking physically reached the hotel's reservation system.
+
+• Column: dim_booking_attributes.distribution_channel
+• Values: TA/TO · Direct · Corporate · GDS · Unknown
+• Note: Distinct from market_segment — e.g. an Online TA booking may arrive via the TA/TO distribution channel.
+
+
+E
+
+Estimated Revenue
+
+Projected revenue from a booking based on rate and stay duration. Set to $0 for all canceled bookings.
+
+• Formula: adr x total_nights when is_canceled = false; else $0
+• Column: fct_bookings.estimated_revenue (decimal(12,2))
+• Total (dataset): $25,986,976
+• Note: Does NOT include revenue from kept non-refundable deposits. Does NOT reflect final invoiced amounts.
+
+
+F
+
+fct_bookings
+
+The central fact table of the hotel bookings mart. One row per booking.
+
+• Grain: One row per booking
+• Rows: 117,576 (filtered from 119,390 source rows; 1,814 invalid bookings excluded via is_valid_booking = false)
+• Surrogate key: booking_key (bigint)
+• Source: int_bookings_flagged WHERE is_valid_booking = true
+
+Full Board (FB)
+
+Meal plan covering all meals (breakfast, lunch, dinner). Highest cancellation rate of any meal plan at 61.05% despite commanding a $111.13 ADR.
+
+• Column: dim_booking_attributes.meal = 'FB'
+• Bookings: 783 (0.67% share)
+
+
+G
+
+Group
+
+Customer type for formal group bookings (tour groups, event attendees). Only 549 bookings (0.47% of total) but the lowest cancellation rate of any customer type at 8.74%.
+
+• Column: dim_booking_attributes.customer_type = 'Group'
+• Note: Do not confuse with the Groups market segment (61.77% cancel rate). These are separate dimensions that behave very differently.
+
+
+H
+
+Half Board (HB)
+
+Meal plan including accommodation, breakfast, and dinner. Second most popular at 12.14% share. Commands the highest ADR of any meal type at $121.87 — a 21% premium over Bed and Breakfast.
+
+• Column: dim_booking_attributes.meal = 'HB'
+• Cancel rate: 34.88% — slightly below the overall average.
+
+Historical Cancellation Rate
+
+Guest-level risk indicator: the proportion of a guest's prior bookings that were canceled before the current booking was made.
+
+• Formula: previous_cancellations / (previous_cancellations + previous_bookings_not_canceled)
+• Column: fct_bookings.historical_cancellation_rate (decimal(5,4))
+• Range: 0.0 to 1.0
+• Critical note: NULL for 92.2% of rows (108,384 bookings) — first-time guests with no prior history. Always filter WHERE historical_cancellation_rate IS NOT NULL before aggregating. Among non-NULL rows the average is approximately 0.65.
+
+Hotel Key
+
+Foreign key in fct_bookings linking to dim_hotels.
+
+• Column: fct_bookings.hotel_key (bigint)
+
+
+I
+
+is_canceled
+
+Boolean flag indicating whether the booking was canceled.
+
+• Column: fct_bookings.is_canceled (bit); true (1) = canceled, false (0) = confirmed
+• Companion: is_canceled_float (float) for aggregation — SUM(is_canceled_float) = count of cancellations
+• Effect: Sets adr_adjusted and estimated_revenue to $0 for all canceled rows.
+
+is_repeated_guest
+
+Boolean flag — true when the guest had at least one prior confirmed booking at the same hotel.
+
+• Column: fct_bookings.is_repeated_guest (bit); companion: is_repeated_guest_int (int)
+• Benchmark: Only 3,292 bookings (2.80%) are from repeated guests — an extremely low loyalty rate.
+
+is_room_type_changed
+
+Boolean flag — true when assigned_room_type differs from reserved_room_type at check-in.
+
+• Column: fct_bookings.is_room_type_changed (bit); companion: is_room_type_changed_int (int)
+• Benchmark: 14,113 bookings (12.00%) had a room change. Room Type A has the highest change rate at 13.93%.
+
+is_weekend
+
+Derived boolean in dim_arrival_date. 1 = guest arrives Saturday or Sunday; 0 = weekday arrival.
+
+• Column: dim_arrival_date.is_weekend (bit)
+• Benchmark: 31,838 weekend arrivals (27.1%) vs 85,738 weekday (72.9%). Weekend arrivals have marginally higher ADR ($104.24 vs $103.01) and lower cancel rate (36.7% vs 37.91%).
+
+
+L
+
+Lead Time
+
+Number of days between the booking date and the scheduled arrival date.
+
+• Column: fct_bookings.lead_time (smallint)
+• Range: 0 (same-day) to 737 days | Benchmark: 105 days average
+• Critical insight: Strongest single predictor of cancellation risk — from 7.19% (same-day) to 68% (365+ days). See Insight 2.
+
+Length of Stay (Total Nights)
+
+Total nights in the stay = weekend nights + weekday nights.
+
+• Formula: stays_in_weekend_nights + stays_in_week_nights
+• Column: fct_bookings.total_nights (tinyint)
+• Benchmark: 3.45 nights average | City Hotel 2.99 | Resort Hotel 4.37 | Contract customers 5.34
+• Note: 23 bookings have total_nights = 0 (same-day / day-use). Exclude with WHERE total_nights > 0 for LOS analysis.
+
+
+M
+
+Market Segment
+
+The commercial channel category through which the booking originated.
+
+• Column: dim_booking_attributes.market_segment
+• Values: Online TA · Offline TA/TO · Groups · Direct · Corporate · Complementary · Aviation
+• Benchmark: Online TA = 47.7% of all bookings. Direct = lowest cancel rate (15.57%) with equivalent ADR to Online TA.
+
+Meal Plan
+
+The food and beverage package bundled with the room rate.
+
+• Columns: dim_booking_attributes.meal (code) · dim_booking_attributes.meal_name (full name)
+• Values: BB (Bed and Breakfast) · HB (Half Board) · SC (Self Catering) · FB (Full Board) · None
+
+
+N
+
+No Deposit
+
+Booking made without any upfront payment. Most common deposit type — 102,828 bookings (87.5% of total). Cancel rate: 28.84%.
+
+
+Non Refund
+
+Booking where a non-refundable deposit was collected. 14,586 bookings (12.4%). Cancel rate: 99.36%. Revenue from kept deposits is not captured in estimated_revenue — see Insight 6.
+
+
+
+P
+
+Party Size (Total Guests)
+
+Total number of people in the booking: adults + children + babies.
+
+• Formula: adults + children + babies
+• Column: fct_bookings.total_guests (int)
+• Benchmark: 1.97 average | Weekend arrivals 2.05 | Weekday arrivals 1.94
+
+Previous Bookings Not Canceled
+
+Count of the guest's prior confirmed bookings at the same hotel before the current booking.
+
+• Column: fct_bookings.previous_bookings_not_canceled (tinyint)
+• Use: Denominator component of historical_cancellation_rate.
+
+Previous Cancellations
+
+Count of the guest's prior canceled bookings at the same hotel before the current booking.
+
+• Column: fct_bookings.previous_cancellations (tinyint)
+• Use: Numerator of historical_cancellation_rate.
+
+
+R
+
+Refundable
+
+Deposit type where a deposit was paid but returned to the guest on cancellation. Only 162 bookings (0.1%), cancel rate 22.22%.
+
+
+Repeated Guest
+
+A guest who has made at least one prior confirmed stay at the same hotel.
+
+• Flag: fct_bookings.is_repeated_guest = true
+• Benchmark: Only 3,292 bookings (2.80%) — well below typical hospitality loyalty benchmarks.
+
+Required Car Parking Spaces
+
+Number of parking spaces requested by the guest.
+
+• Column: fct_bookings.required_car_parking_spaces (tinyint)
+• Use: Operational capacity planning; useful as a segmentation indicator.
+
+Reserved Room Type
+
+The room type originally requested by the guest at booking time.
+
+• Column: fct_bookings.reserved_room_key FK to dim_reserved_room
+• Values: Room types A through P (10 types). Room A = 72% of all bookings.
+• Note: Room type P is present in dim_reserved_room but has zero bookings in fct_bookings.
+
+Resort Hotel
+
+The smaller, leisure-focused hotel. Longer average stays (4.37 nights); lower ADR ($96.59); lower cancellation rate (28.21%). Represents 33.5% of bookings and 44.6% of estimated revenue.
+
+• Dim reference: dim_hotels.hotel_name = 'Resort Hotel', hotel_type = 'Resort'
+
+
+S
+
+Self Catering (SC)
+
+Meal plan with no included meals — guests prepare their own food or dine out. 10,428 bookings (8.87%). Cancel rate 37.84%.
+
+• Column: dim_booking_attributes.meal = 'SC'
+
+Special Requests
+
+Number of specific requests submitted by the guest at booking (e.g. high floor, twin beds, non-smoking room).
+
+• Column: fct_bookings.total_of_special_requests (tinyint)
+• Benchmark: 0.57 average per booking | Weekend arrivals 0.62 | Weekday arrivals 0.55
+
+Status Date Key
+
+Integer surrogate key in YYYYMMDD format linking fct_bookings to dim_status_date. Represents the date of the last booking status change (check-out or cancellation date).
+
+• Column: fct_bookings.status_date_key FK to dim_status_date
+• Note: reservation_status (Check-Out / Canceled / No-Show) is NOT carried to the mart — only the status date is joinable. Add reservation_status to fct_bookings in CODE mode if granular status reporting is required.
+
+Stays in Week Nights
+
+Number of weekday nights (Monday-Friday) in the booking. Component of total_nights.
+
+• Column: fct_bookings.stays_in_week_nights (tinyint)
+
+Stays in Weekend Nights
+
+Number of weekend nights (Saturday-Sunday) in the booking. Component of total_nights.
+
+• Column: fct_bookings.stays_in_weekend_nights (tinyint)
+
+Surrogate Key
+
+A system-generated integer with no business meaning used to uniquely identify rows across the star schema.
+
+• fct_bookings.booking_key — bigint, auto-generated
+• dim_arrival_date.arrival_date_key and dim_status_date.status_date_key — YYYYMMDD integer format
+• All dimension PKs (hotel_key, country_key, reserved_room_key, assigned_room_key, booking_attr_key) — bigint
+
+
+T
+
+Total Guests
+
+See Party Size.
+
+
+Total Nights
+
+See Length of Stay.
+
+
+Transient
+
+The most common customer type — individual travellers booking for personal travel. 88,272 bookings (75.1%), cancel rate 41.34% — the highest of any customer type and the primary driver of the overall cancellation rate.
+
+• Column: dim_booking_attributes.customer_type = 'Transient'
+
+Transient-Party
+
+Individual travellers booking together as an informal group (families, friends) without a formal group contract. 24,702 bookings (21.0%). Lower cancel rate (25.85%) and longer lead time (137.8 days) than standard Transient.
+
+• Column: dim_booking_attributes.customer_type = 'Transient-Party'
+
+
+W
+
+Waiting List Days
+
+See Days in Waiting List.
+
+
+Weekend Flag
+
+See is_weekend.
