@@ -1,0 +1,400 @@
+Hotel Bookings — Data Quality Documentation
+
+Project: Test_HotelBookings
+
+Database: MSSQL — HotelBooking
+
+Assessed: 2026-06-19
+
+Tables assessed: 9 tables (1 source, 2 intermediate, 1 fact, 7 dimensions)
+
+Total source rows: 119,390
+
+
+
+Summary Scorecard
+
+Table	Issues Found	Severity	Status
+bookings	4	🟡 Moderate	✅ Fixed in stg_bookings / fct_bookings
+stg_bookings	0	🟢 Clean	✅ Clean pass-through
+int_bookings_flagged	0	🟢 Clean	✅ Flags added, no DQ issues
+fct_bookings	3	🟡 Moderate	⚠️ 2 by design, 1 missing column
+dim_arrival_date	1	🟡 Moderate	⚠️ Date range extends beyond booking data
+dim_country	1	🟡 Moderate	⚠️ Sentinel continent values
+dim_reserved_room	1	🟡 Moderate	⚠️ Room Type P has 0 bookings
+dim_assigned_room	1	🟡 Moderate	⚠️ 2 extra room types vs dim_reserved_room
+dim_hotels	0	🟢 Clean	✅ Fully matched
+dim_booking_attributes	0	🟢 Clean	✅ Fully matched
+dim_status_date	0	🟢 Clean	✅ Fully matched
+
+
+Issue Catalogue
+
+🟡 BOOK-01 — Boolean Flags Stored as bit — Cannot Aggregate Directly
+Table: bookings · Columns: is_canceled, is_repeated_guest, is_room_type_changed · Type: bit
+
+
+Description:
+
+Three business-critical flag columns are stored as SQL bit (boolean). Most BI tools including instaBI cannot SUM() a boolean field directly, making rate calculations impossible without a workaround.
+
+
+Column	Business Use	Problem
+is_canceled	Cancellation rate = SUM / COUNT	Cannot SUM bit in most BI tools
+is_repeated_guest	Repeated guest rate	Cannot SUM bit in most BI tools
+is_room_type_changed	Room change rate	Cannot SUM bit in most BI tools
+
+Impact: Dashboard KPIs for cancellation rate, repeated guest rate, and room type change rate cannot be built through drag-and-drop in instaBI without numeric equivalents.
+
+
+Fix applied in `fct_bookings`:
+
+CAST(is_canceled AS FLOAT)          AS is_canceled_float,
+1.0 - CAST(is_canceled AS FLOAT)    AS confirmed_float,
+CAST(is_repeated_guest AS INT)      AS is_repeated_guest_int,
+CAST(is_room_type_changed AS INT)   AS is_room_type_changed_int
+
+Usage in instaBI:
+
+Cancellation Rate   = SUM(is_canceled_float)        / COUNT(booking_key)
+Repeated Guest Rate = SUM(is_repeated_guest_int)    / COUNT(booking_key)
+Room Change Rate    = SUM(is_room_type_changed_int) / COUNT(booking_key)
+
+
+🟡 BOOK-02 — historical_cancellation_rate NULL for 92.2% of Rows
+Table: bookings → fct_bookings · Column: historical_cancellation_rate · Type: decimal(5,4)
+
+
+Description:
+
+A guest-level risk score derived from prior booking history. NULL means the guest is first-time — both previous_cancellations and previous_bookings_not_canceled are 0.
+
+
+Value	Rows	%
+NULL (first-time guests)	108,384	92.2%
+0.0 (never canceled before)	2,768	2.4%
+1.0 (always canceled before)	5,832	5.0%
+Between 0 and 1	592	0.5%
+
+Formula: previous_cancellations / NULLIF(previous_cancellations + previous_bookings_not_canceled, 0)
+
+
+Impact: AVG(historical_cancellation_rate) across all rows is misleading — NULL rows are silently excluded. Average among non-NULL rows ≈ 0.65. Always filter WHERE historical_cancellation_rate IS NOT NULL before aggregating.
+
+
+No fix needed — NULL is semantically correct. Enforce as a usage convention.
+
+
+
+🟡 BOOK-03 — adr = 0 for 178 Rows (Complimentary Stays)
+Table: bookings → fct_bookings · Column: adr · Type: decimal(10,2)
+
+
+Description:
+
+178 bookings (0.15%) have adr = 0 — complimentary or internal stays with no charged rate. Valid bookings but silently lower AVG(adr) and produce estimated_revenue = 0.
+
+
+Impact: Minor. Recommended filter for ADR and revenue analysis: WHERE adr > 0.
+
+
+
+🟡 BOOK-04 — 23 Zero-Night Stays (total_nights = 0)
+Table: bookings → fct_bookings · Column: total_nights · Type: tinyint
+
+
+Description:
+
+23 bookings (0.02%) have total_nights = 0 — likely same-day check-outs or day-use bookings where stays_in_week_nights + stays_in_weekend_nights = 0.
+
+
+Impact: estimated_revenue = 0 even when adr > 0. Slightly understates AVG(total_nights). Recommended filter for stay-length analysis: WHERE total_nights > 0.
+
+
+
+🟡 FCT-01 — reservation_status Not Carried to Mart
+Table: fct_bookings · Column: missing
+
+
+Description:
+
+bookings contains reservation_status (values: Check-Out / Canceled / No-Show) which passes through stg_bookings and int_bookings_flagged but was not included in `fct_bookings`. Only is_canceled (boolean) is available, which cannot distinguish No-Show from a standard cancellation.
+
+
+Status	Available in fct?
+Check-Out	❌ Inferred only from is_canceled = false
+Canceled	✅ is_canceled = true
+No-Show	❌ Not distinguishable
+
+Impact: Dashboard cannot report No-Show rate separately from Cancellation rate.
+
+
+Recommended fix: Add reservation_status to fct_bookings in CODE mode.
+
+
+
+🟡 FCT-02 — adr_adjusted and estimated_revenue = 0 for All Canceled Bookings
+Table: fct_bookings · Columns: adr_adjusted, estimated_revenue
+
+
+Description:
+
+By design, both columns are set to 0 when is_canceled = true, affecting 44,188 rows (37.58%).
+
+
+Column	Zero rows	%	Reason
+adr_adjusted	44,188	37.58%	Set to 0 when is_canceled = true
+estimated_revenue	44,188	37.58%	Set to 0 when is_canceled = true
+
+This is intentional. However it causes AVG(adr_adjusted) to appear much lower than AVG(adr) (City Hotel: $62.49 vs $106.74). Always filter WHERE is_canceled = false for revenue and adjusted ADR analysis.
+
+
+
+🟡 FCT-03 — 1,814 Source Rows Filtered Out in fct_bookings
+Table: int_bookings_flagged → fct_bookings
+
+
+Description:
+
+1,814 rows are present in all upstream layers but excluded from the mart via WHERE is_valid_booking = true.
+
+
+Layer	Rows
+bookings (raw)	119,390
+stg_bookings	119,390
+int_bookings_flagged	119,390
+fct_bookings	117,576
+Dropped	1,814 (1.52%)
+
+Recommended action: Document the exact filter logic for is_valid_booking in int_bookings_flagged model SQL.
+
+
+
+🟡 DIM-01 — Room Type P Exists in dim_reserved_room with 0 Bookings
+Table: dim_reserved_room · Column: room_type_code
+
+
+Description:
+
+Room type P is present in the dimension but zero bookings in fct_bookings reference it. Will appear as an empty row in room-level charts.
+
+
+Room Type	Bookings in fct
+A	84,691
+D	19,014
+E	6,425
+F	2,831
+G	2,013
+B	1,086
+C	915
+H	595
+L	6
+P	0
+
+Recommended action: Confirm whether Room Type P is active. Add an is_active flag or remove from the dimension.
+
+
+
+🟡 DIM-02 — dim_arrival_date Covers Dates Before Booking Data Range
+Table: dim_arrival_date
+
+
+Description:
+
+The date dimension starts October 2014 but the earliest booking arrives July 2015. Months between October 2014 and June 2015 exist in the dimension but have no matching bookings — producing 0 revenue and 0 bookings in any chart that LEFT JOINs from the date dimension.
+
+
+Period	In dim_arrival_date	Bookings
+Oct 2014 – Jun 2015	✅ Present	0
+Jul 2015 – Aug 2017	✅ Present	117,576
+
+Recommended action: Apply a date range filter in dashboard charts, e.g. WHERE year >= 2016 OR (year = 2015 AND month_number >= 7).
+
+
+
+🟡 DIM-03 — dim_country Contains Sentinel Continent Values
+Table: dim_country · Column: continent
+
+
+Description:
+
+Two continent values are semantically invalid and will pollute continent-level charts.
+
+
+Continent	Issue
+'Antarctica'	Likely unmapped country code or data entry error
+'Unknown'	Country could not be mapped to a continent
+
+Recommended action: Identify the country_code values behind these rows. Remap 'Antarctica' to the correct continent. Replace 'Unknown' with NULL or a defined fallback.
+
+
+
+🟡 DIM-04 — dim_assigned_room Has 2 More Room Types Than dim_reserved_room
+Tables: dim_assigned_room (12 rows) vs dim_reserved_room (10 rows)
+
+
+Description:
+
+2 room type codes exist in dim_assigned_room that are not in dim_reserved_room. Guests cannot reserve these types directly — they are likely upgrade or overflow rooms assigned at check-in.
+
+
+Impact: Room-type comparison charts (reserved vs assigned) will have unmatched codes on the assigned side.
+
+
+Recommended action: Document which 2 codes are assigned-only and add an is_reservable flag to dim_assigned_room.
+
+
+
+Profiling Summary by Table
+
+bookings (119,390 rows — Raw Source)
+
+Column	Type	Nulls	Zeros	Notes
+hotel	nvarchar	0	—	2 distinct values ✅
+is_canceled	bit	0	—	37.58% = true ✅
+lead_time	smallint	0	—	Range 0–737 days ✅
+arrival_date_year	smallint	0	—	2015–2017 ✅
+arrival_date_month	nvarchar	0	—	Text month name ✅
+stays_in_weekend_nights	tinyint	0	—	✅
+stays_in_week_nights	tinyint	0	—	✅
+adr	float	0	178	⚠️ 178 complimentary stays
+reservation_status	nvarchar	0	—	⚠️ Not carried to mart
+reservation_status_date	date	0	—	⚠️ Value lost in mart
+
+fct_bookings (117,576 rows — Fact)
+
+Column	Type	Nulls	Zeros	Notes
+booking_key	bigint	0	—	✅ Unique PK
+is_canceled	bit	0	—	44,188 = true (37.58%) ✅
+is_canceled_float	float	0	73,388	✅ Use for SUM-based rate calculations
+confirmed_float	float	0	44,188	✅ Complement of is_canceled_float
+is_repeated_guest_int	int	0	—	✅ Use for SUM
+is_room_type_changed_int	int	0	—	✅ Use for SUM
+adr	decimal	0	178	⚠️ Filter WHERE adr > 0 for rate analysis
+adr_adjusted	decimal	0	44,188	⚠️ 0 for canceled — by design
+estimated_revenue	decimal	0	44,188	⚠️ 0 for canceled — by design
+total_nights	tinyint	0	23	⚠️ 23 zero-night stays
+total_guests	int	0	0	✅ Clean
+historical_cancellation_rate	decimal	108,384	—	⚠️ 92.2% NULL — first-time guests only
+days_in_waiting_list	int	0	—	✅ Most = 0 (direct confirm)
+
+dim_country (178 rows)
+
+Column	Type	Notes
+country_key	bigint	✅ Unique PK
+country_code	nvarchar	✅
+country_name	nvarchar	✅
+continent	varchar	⚠️ Contains 'Unknown' and 'Antarctica'
+
+dim_reserved_room / dim_assigned_room
+
+Table	Rows	Notes
+dim_reserved_room	10	⚠️ Room Type P has 0 bookings in fct
+dim_assigned_room	12	⚠️ 2 extra room types not in dim_reserved_room
+
+dim_hotels, dim_booking_attributes, dim_status_date
+All clean — no DQ issues. 0 orphaned FK rows across all dimension joins.
+
+
+
+Referential Integrity Check
+
+FK Column in fct_bookings	Dim Table	Unmatched Rows
+hotel_key	dim_hotels	0 ✅
+arrival_date_key	dim_arrival_date	0 ✅
+status_date_key	dim_status_date	0 ✅
+reserved_room_key	dim_reserved_room	0 ✅
+assigned_room_key	dim_assigned_room	0 ✅
+country_key	dim_country	0 ✅
+booking_attr_key	dim_booking_attributes	0 ✅
+
+
+Fixes Applied in Staging / Mart Layer
+
+Issue ID	Column	Fix	Model
+BOOK-01	is_canceled	CAST(is_canceled AS FLOAT) → is_canceled_float	fct_bookings
+BOOK-01	is_canceled	1.0 - is_canceled_float → confirmed_float	fct_bookings
+BOOK-01	is_repeated_guest	CAST(is_repeated_guest AS INT) → is_repeated_guest_int	fct_bookings
+BOOK-01	is_room_type_changed	CAST(is_room_type_changed AS INT) → is_room_type_changed_int	fct_bookings
+BOOK-03	adr	Usage convention: filter WHERE adr > 0 for rate analysis	Convention
+BOOK-04	total_nights	Usage convention: filter WHERE total_nights > 0 for stay analysis	Convention
+FCT-03	is_valid_booking	WHERE is_valid_booking = true applied in fct build	fct_bookings
+
+
+Open Issues (Not Yet Fixed)
+
+Issue ID	Description	Recommended Action
+FCT-01	reservation_status missing from fct_bookings	Add column in CODE mode
+DIM-01	Room Type P has 0 bookings in fct	Add is_active flag or remove from dim
+DIM-02	Pre-booking dates in dim_arrival_date show 0 in charts	Add date range filter to all dashboard charts
+DIM-03	'Antarctica' and 'Unknown' in dim_country.continent	Remap to correct continent or NULL
+DIM-04	2 assigned-only room types undocumented in dim_assigned_room	Add is_reservable flag
+BOOK-02	historical_cancellation_rate NULL for 92.2% of rows	Enforce IS NOT NULL filter in all downstream usage
+
+
+DQ Rules for Future Testing (schema.yml)
+
+models:
+  - name: fct_bookings
+    columns:
+      - name: booking_key
+        tests: [unique, not_null]
+      - name: is_canceled_float
+        tests: [not_null]
+      - name: adr
+        tests: [not_null]
+      - name: estimated_revenue
+        tests: [not_null]
+      - name: total_nights
+        tests: [not_null]
+      - name: hotel_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_hotels')
+              field: hotel_key
+      - name: arrival_date_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_arrival_date')
+              field: arrival_date_key
+      - name: country_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_country')
+              field: country_key
+      - name: booking_attr_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_booking_attributes')
+              field: booking_attr_key
+
+  - name: dim_country
+    columns:
+      - name: country_key
+        tests: [unique, not_null]
+      - name: continent
+        tests:
+          - accepted_values:
+              values: ['Europe', 'Americas', 'Asia', 'Africa', 'Oceania']
+
+  - name: dim_hotels
+    columns:
+      - name: hotel_key
+        tests: [unique, not_null]
+      - name: hotel_type
+        tests:
+          - accepted_values:
+              values: ['City', 'Resort']
+
+  - name: dim_booking_attributes
+    columns:
+      - name: booking_attr_key
+        tests: [unique, not_null]
+      - name: deposit_type
+        tests:
+          - accepted_values:
+              values: ['No Deposit', 'Non Refund', 'Refundable']
