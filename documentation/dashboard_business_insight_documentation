@@ -1,0 +1,423 @@
+Hotel Bookings — Dashboard Business Insight Documentation
+
+> Purpose: Explains the business question each chart, KPI card, and drill-down is designed to answer — what story it tells and why it matters to the business.
+
+> Dashboards: Overview · Revenue Analysis · Booking Patterns & Behaviour · Guest & Market Intelligence
+
+
+
+Dashboard 1 — Overview
+
+Dashboard Purpose:
+
+The executive entry point. Answers "How is the business performing overall?" The four KPI cards show headline health indicators, and the three charts provide the first layer of context — trends over time, hotel comparison, and booking status split.
+
+
+
+[KPI-01] Total Bookings
+Business Question: How many bookings did the hotel receive in the selected period?
+
+
+Business Insight:
+
+The primary volume indicator of business activity. Reflects total demand — confirmed and canceled combined — giving management a sense of pipeline size regardless of outcome. When read alongside Cancellation Rate (KPI-03), it distinguishes genuine growth from inflated-but-fragile demand driven by high-cancellation bookings. A rising Total Bookings figure with a stable cancellation rate signals healthy, sustainable demand growth.
+
+
+
+[KPI-02] Total Revenue
+Business Question: How much estimated revenue did bookings generate?
+
+
+Business Insight:
+
+The primary financial health indicator. Represents the sum of adr × total_nights across all bookings and is the starting point for profitability conversations. Revenue can grow even when booking volume falls (fewer but higher-rate or longer-stay guests), and it can stagnate even when volume grows (more bookings at lower rates). Always read this alongside KPI-01 to understand whether revenue growth is driven by volume or by pricing improvement.
+
+
+
+[KPI-03] Cancellation Rate
+Business Question: What proportion of all bookings are being canceled?
+
+
+Business Insight:
+
+The most critical operational risk indicator on the dashboard. A high cancellation rate directly reduces realised revenue, disrupts room inventory planning, and increases operational costs from re-selling vacant rooms at last-minute discount rates. At 37.58%, the hotel is losing more than 1 in 3 bookings before the guest arrives — significantly above the typical industry benchmark of 20–30%. This KPI flags whether the business needs to review its deposit policy, booking channel mix, or lead-time exposure. Drill into CHART-03 and DRILL-03 to identify which segments are most responsible.
+
+
+
+[KPI-04] Average Daily Rate (ADR)
+Business Question: On average, how much revenue does the hotel earn per room per night?
+
+
+Business Insight:
+
+ADR is the core pricing effectiveness metric in hospitality. It measures whether the hotel is successfully capturing value for its rooms. A declining ADR may signal competitive pressure, over-reliance on discount channels, or a shift in guest mix toward lower-rate segments. ADR should never be read in isolation — a hotel can raise ADR while losing bookings (overpriced) or lower ADR while gaining bookings (discount-driven growth). The relationship between ADR and Total Bookings reveals the hotel's pricing strategy effectiveness.
+
+
+
+[CHART-01] Monthly Revenue & Booking Volume
+Business Question: How do revenue and booking volume trend across months, and do they move together?
+
+
+Business Insight:
+
+The most important trend chart in the dashboard. Overlaying revenue (line) with booking volume (bar) on the same time axis answers three questions at once:
+
+
+1. Seasonality — Which months are peak and which are low season? This drives staffing, pricing, and promotional planning.
+
+2. Revenue efficiency — Months where revenue grows faster than booking volume indicate successful rate optimisation. Months where bookings spike but revenue lags suggest last-minute low-rate bookings filling capacity.
+
+3. Year-on-year growth — Comparing the same month across 2015, 2016, and 2017 reveals whether the business is genuinely growing or stagnating.
+
+
+[DRILL-01] Monthly Booking Detail List:
+
+When a specific month bar is selected, this detail table shows every individual booking for that month — including hotel, country, market segment, status, nights, rate, and revenue. Used to audit outliers, understand the guest mix behind a revenue spike or trough, and validate data accuracy.
+
+
+
+[CHART-02] Hotel Performance Comparison
+Business Question: How do City Hotel and Resort Hotel compare across bookings, revenue, and ADR?
+
+
+Business Insight:
+
+A direct head-to-head comparison across the three most important business metrics, deliberately separated into three panels to prevent a misleading composite view. Each panel tells a different story:
+
+
+• Panel A (Bookings): Which hotel generates more demand? City Hotel drives roughly twice the booking volume — reflecting greater capacity, broader channel reach, or more accessible pricing.
+• Panel B (Revenue): Is booking volume proportional to revenue? A hotel with lower volume but competitive revenue is achieving higher value per booking.
+• Panel C (ADR): Which hotel charges more per night? Resort Hotel's ADR profile tends to differ from City Hotel's, reflecting its leisure-oriented, longer-stay guest mix.
+
+Together, the three panels reveal whether each hotel is competing on volume, value, or both — informing property-level pricing and investment decisions.
+
+
+[DRILL-02] Hotel Monthly Revenue Trend:
+
+Shows how each hotel's revenue has evolved month by month. Reveals whether the two hotels have aligned or divergent seasonality patterns, and whether one property is growing faster than the other — critical context for portfolio resource allocation.
+
+
+
+[CHART-03] Booking Status Breakdown
+Business Question: Of all bookings made, what proportion were confirmed versus canceled?
+
+
+Business Insight:
+
+A pie chart deliberately chosen for its immediate visual impact — the two-category split (Confirmed / Canceled) communicates the proportion at a glance. The visual imbalance, with canceled bookings at 37.58%, is designed to be uncomfortable: it forces stakeholders to confront that nearly 4 in 10 bookings made are never fulfilled. Canceled bookings are not merely lost revenue — rooms held for canceling guests cannot be resold until the cancellation occurs, often too late to achieve full rate.
+
+
+[DRILL-03] Cancellation Rate by Market Segment:
+
+This is where the headline cancellation figure becomes actionable. Not all segments cancel equally — Online TA bookings may cancel at 50%+ while Group bookings cancel at under 10%. Identifying which segments drive the most cancellations allows the hotel to apply differentiated deposit policies, tighten booking terms for high-risk segments, or shift marketing investment toward lower-risk channels.
+
+
+
+Dashboard 2 — Revenue Analysis
+
+Dashboard Purpose:
+
+Where the Overview answers how much revenue exists, this dashboard answers where it comes from and what shapes it. Focuses on segment, channel, and deposit policy — the levers the hotel can pull to improve revenue quality.
+
+
+
+[KPI-05] Average Revenue per Confirmed Booking
+Business Question: How much revenue does each successful booking actually deliver?
+
+
+Business Insight:
+
+A quality-of-revenue metric. By filtering to confirmed bookings only, it removes the distortion of canceled bookings from the denominator and reveals the true average value of a guest who stays. A rising figure means the hotel is attracting higher-value guests or successfully extending average stay length. This differs from ADR — ADR measures rate per night; this KPI captures both rate and length of stay in a single number.
+
+
+
+[KPI-06] City Hotel Revenue
+Business Question: How much total revenue did City Hotel contribute?
+
+
+Business Insight:
+
+A property-level financial snapshot. Enables instant comparison of each hotel's revenue contribution to the total portfolio. When tracked over time, it reveals whether City Hotel's share is growing or being outpaced by Resort Hotel — informing decisions about where to invest in marketing, capacity, or pricing initiatives.
+
+
+
+[KPI-07] Resort Hotel Revenue
+Business Question: How much total revenue did Resort Hotel contribute?
+
+
+Business Insight:
+
+The mirror card to KPI-06. Resort Hotel typically serves leisure travellers with longer stays and higher weekend occupancy, giving it a structurally different revenue profile from City Hotel. Monitoring both side by side exposes the portfolio balance and allows management to make property-specific decisions rather than relying on blended averages.
+
+
+
+[KPI-08] Total Nights Sold
+Business Question: How many room-nights were actually delivered to confirmed guests?
+
+
+Business Insight:
+
+A capacity utilisation proxy filtered to confirmed bookings only. Reveals whether the hotel is successfully converting bookings into occupied room-nights. Combined with Total Revenue, it allows an implied revenue-per-night calculation. High nights sold alongside moderate revenue signals rooms are being filled but at low rates — a pricing opportunity. Low nights sold despite high booking volume indicates short stays dominating the mix.
+
+
+
+[CHART-04] Revenue by Market Segment
+Business Question: Which market segments drive the most bookings and revenue — and are the two proportional?
+
+
+Business Insight:
+
+Market segments represent structurally different customer types with different price sensitivities, booking behaviours, and cancellation tendencies. The dual-panel layout separates volume from value intentionally — a segment dominant in bookings may be weak in revenue (short stays, discounted rates), while a niche segment may deliver outsized revenue per booking (corporate accounts, premium leisure).
+
+
+This chart is the foundation for revenue mix strategy: which segments to grow, which to constrain, and which are over-represented relative to their financial contribution.
+
+
+[DRILL-04] Segment × Distribution Channel Breakdown:
+
+Reveals which distribution channels each market segment uses to book. For example, Online TA segment bookings predominantly flow through TA/TO channels — a relationship with significant commission cost implications. This drill-down supports channel negotiation and direct-booking incentive decisions.
+
+
+
+[CHART-05] Revenue by Distribution Channel
+Business Question: Which booking channels are generating the most revenue — and at what cost?
+
+
+Business Insight:
+
+Distribution channels determine how guests discover and book the hotel. Each channel carries a different cost structure: direct bookings have the lowest acquisition cost; TA/TO bookings carry commission fees typically between 15–25% of room revenue. A portfolio heavily weighted toward TA/TO may have strong top-line revenue but significantly eroded net margins.
+
+
+This chart exposes the channel dependency risk and supports strategic decisions about where to invest in direct booking campaigns, loyalty programmes, or OTA renegotiations.
+
+
+[DRILL-05] Distribution Channel × Customer Type Breakdown:
+
+Shows how each channel's revenue and bookings break down by customer type (Transient, Group, Contract, Transient-Party). Identifies whether specific channels serve specific customer profiles — for example, whether Corporate channel is predominantly Contract customers — and whether those profiles represent high or low lifetime value.
+
+
+
+[CHART-06] Revenue & Cancellation by Deposit Type
+Business Question: Does the hotel's deposit policy affect how much revenue is generated and how likely bookings are to be canceled?
+
+
+Business Insight:
+
+One of the most strategically important charts in the dashboard. It tests the fundamental revenue management hypothesis: guests with financial commitment cancel less. The dual-axis format shows both revenue and cancellation rate for each deposit type, allowing side-by-side comparison:
+
+
+• No Deposit — Guests face no financial consequence for canceling. Likely the highest cancellation rate.
+• Non Refund — Guests have paid upfront and cannot recover their money. Cancellation rate should be near zero, and revenue is protected regardless of whether the guest arrives.
+• Refundable — Some commitment but still cancelable. Sits between the other two.
+
+If the data confirms that Non Refund bookings have dramatically lower cancellation rates, the hotel has a clear strategic lever: expand non-refundable rate tiers, particularly during high-demand periods when last-minute resale is less reliable.
+
+
+[DRILL-06] Deposit Type Booking List:
+
+A booking-level audit list for any selected deposit type. Used to validate patterns, investigate anomalies (e.g. Non Refund bookings with high cancellation), and understand which customer types are choosing each deposit tier.
+
+
+
+Dashboard 3 — Booking Patterns & Behaviour
+
+Dashboard Purpose:
+
+Shifts focus from what is being booked to how guests behave when booking. Answers questions about timing, arrival rhythms, and room experience. These insights drive operational decisions — staffing, inventory management, and room assignment processes.
+
+
+
+[KPI-09] Average Lead Time
+Business Question: On average, how many days before arrival do guests make their booking?
+
+
+Business Insight:
+
+Lead time is a window into guest planning behaviour and a key determinant of booking risk. At an average of 105 days, guests tend to plan well in advance. This has two competing implications: longer lead times provide more time for dynamic pricing and inventory optimisation, but they also increase cancellation exposure — guests who book months ahead have more opportunity to change plans. A shift toward shorter average lead times over time may signal growing last-minute demand or increasing price sensitivity.
+
+
+
+[KPI-10] Average Length of Stay
+Business Question: How many nights do guests typically stay?
+
+
+Business Insight:
+
+Length of stay directly multiplies ADR to produce revenue per booking. At 3.45 nights average, there is room to grow revenue through upselling longer stays or structuring minimum-night packages during peak periods. Longer stays also reduce operational cost per guest — fewer turnovers mean lower housekeeping and front desk overhead per room-night. This KPI differs meaningfully between City Hotel (shorter, business-trip driven) and Resort Hotel (longer, leisure-driven) guest profiles.
+
+
+
+[KPI-11] Average Days in Waiting List
+Business Question: How long do guests typically wait before their booking is confirmed?
+
+
+Business Insight:
+
+A demand pressure indicator. When waiting list days rise, the hotel is at or near capacity and guests are queuing for availability. A near-zero average means inventory is readily available and the hotel is not experiencing scarcity. Rising waiting list times during specific periods can justify rate increases during those windows — guests willing to wait are demonstrating strong intent and will likely accept higher prices for guaranteed availability.
+
+
+
+[CHART-07] Lead Time Distribution
+Business Question: How are bookings distributed across different booking windows, and do earlier bookers generate more revenue?
+
+
+Business Insight:
+
+Rather than a single average, this chart reveals the shape of booking behaviour across five time bands. The overlaid average revenue line adds the critical revenue dimension — it answers whether advance bookers are worth more or less than last-minute guests:
+
+
+• If the 0–30 day bucket dominates and carries low average revenue, the hotel is filling up with last-minute discounted bookings — a yield management problem.
+• If 181–365 day bookings carry the highest average revenue, advance planning guests represent the most valuable segment and should be actively incentivised through early-bird rates.
+
+This chart directly informs pricing strategy across the booking horizon.
+
+
+[DRILL-07] Lead Time by Market Segment:
+
+Reveals which segments cluster in which lead time bands. Corporate bookings may predominantly fall within 0–30 days (short planning horizons); leisure Online TA bookings may cluster in 31–180 days. Matching segments to lead time bands allows the hotel to tailor communication timing and rate strategies per segment.
+
+
+
+[CHART-08] Arrivals by Day of Week
+Business Question: Which days of the week attract the most arrivals, and does ADR vary by day?
+
+
+Business Insight:
+
+Day-of-week arrival patterns are essential for staffing and dynamic pricing. The dual-panel structure separates volume from rate — revealing whether the hotel is capturing the revenue opportunity on its busiest days:
+
+
+• Panel A (Bookings): Identifies which days demand the most check-in resources. High-arrival days require more front desk, housekeeping, and F&B staffing.
+• Panel B (ADR): Reveals whether the hotel charges a premium on high-demand days. If Friday has the highest arrivals but the same ADR as Tuesday, the hotel is not capturing its pricing power on its busiest day.
+
+City Hotel and Resort Hotel have structurally different weekly rhythms — business travellers typically arrive Monday to Wednesday; leisure travellers arrive Friday to Saturday. These patterns should inform property-specific staffing models.
+
+
+[DRILL-08] Day of Week by Hotel:
+
+Confirms whether the two hotels have different weekly arrival profiles, validating whether a single staffing model applies to both or whether each property requires its own day-of-week resourcing plan.
+
+
+
+[CHART-09] Reserved vs Assigned Room Type
+Business Question: How often do guests receive a different room type from what they originally reserved, and which reserved types are most affected?
+
+
+Business Insight:
+
+Room type changes occur when the hotel cannot deliver the reserved category and assigns an alternative — ideally an upgrade, but sometimes a lateral or downgrade move. The dual-axis chart shows both demand volume and change rate by reserved room type simultaneously:
+
+
+• Volume axis: Reveals the concentration of demand — Room Type A accounts for 72% of all reservations, creating significant operational pressure on that single category.
+• Change rate axis: Room Type A's 13.9% change rate means nearly 1 in 7 guests reserving it receives a different room. At scale (84,000+ bookings), this represents thousands of guests whose stay begins with an unmet expectation.
+
+High room change rates signal a structural mismatch between what guests want to reserve and what the hotel can reliably deliver — a product and inventory management problem with direct guest satisfaction and review score implications.
+
+
+[DRILL-09] Room Type Change Detail List:
+
+Booking-level audit of room type changes for a selected reserved type. Shows both reserved and assigned room codes side by side, allowing the operations team to classify whether changes are upgrades or downgrades and to quantify any ADR impact from the reassignment.
+
+
+
+Dashboard 4 — Guest & Market Intelligence
+
+Dashboard Purpose:
+
+Focuses on who the hotel's guests are and where they come from. Answers questions about guest composition, loyalty, geographic origin, and dining preferences — the inputs needed for targeted marketing, partnership strategy, and product decisions.
+
+
+
+[KPI-12] Total Guests Served
+Business Question: How many individual guests did the hotel host in the selected period?
+
+
+Business Insight:
+
+Total Guests Served (adults + children + babies, confirmed only) represents actual footfall — the number of people who physically stayed. This differs from Total Bookings because one booking covers multiple guests. A hotel averaging 2.0 guests per booking has different F&B demand, pool usage, and amenity requirements than one averaging 1.2. This metric feeds capacity planning, F&B procurement, and service design decisions.
+
+
+
+[KPI-13] Repeated Guest Rate
+Business Question: What proportion of bookings come from guests who have stayed before?
+
+
+Business Insight:
+
+At 2.80%, this metric reveals a significant loyalty gap. In hospitality, repeat guests are dramatically cheaper to acquire than new guests (no marketing or OTA commission cost), tend to spend more per stay, book more directly, and cancel less frequently. A rate below 5% indicates either the absence of an effective loyalty programme or a structural guest profile challenge (one-time destination visitors). Improving repeat guest rate from 2.80% to even 8–10% would meaningfully reduce customer acquisition costs and improve revenue quality.
+
+
+
+[KPI-14] Average Special Requests
+Business Question: How many special requests does the average guest make?
+
+
+Business Insight:
+
+With 0.57 average special requests per booking, roughly 1 in 2 guests makes at least one request. Special requests are both an operational challenge and a business opportunity — guests who engage before arrival are more invested in their stay, more receptive to upsell offers, and more likely to leave reviews. Tracking this KPI over time reveals whether the hotel's pre-arrival communication is successfully surfacing guest preferences, and whether fulfilment of requests is translating into higher satisfaction scores.
+
+
+
+[KPI-15] Room Type Change Rate
+Business Question: What percentage of guests received a different room type from the one they reserved?
+
+
+Business Insight:
+
+At 12.00%, 1 in 8 guests does not receive the room they booked. This is a guest experience risk metric that sits in the intelligence dashboard because its primary consequence is guest satisfaction, repeat visit probability, and online review scores — not just operational inconvenience. Unannounced room changes, especially downgrades, are among the most common drivers of negative hospitality reviews and direct booking disengagement. Monitoring this rate alongside repeated guest rate (KPI-13) reveals whether room change experiences are suppressing loyalty.
+
+
+
+[CHART-10] Top 15 Countries by Booking Volume
+Business Question: Which countries are the hotel's most important source markets, and do high-volume markets also deliver high revenue?
+
+
+Business Insight:
+
+Geographic source market analysis is foundational for sales and marketing strategy. The dual-panel layout deliberately separates volume (Panel A) from value (Panel B) — a country may send many guests but generate modest revenue (budget travellers, short stays), or send fewer guests who generate disproportionate revenue (premium leisure, long-haul travellers with extended stays and higher ADR).
+
+
+Identifying this volume-vs-value distinction allows the hotel to:
+
+• Prioritise marketing spend in high-value source markets rather than simply high-volume ones
+• Select OTA partnerships based on which platforms dominate in the most valuable markets
+• Tailor in-hotel services — language support, cuisine preferences, cultural sensitivities — to the dominant nationalities
+
+[DRILL-10] Country Detail List:
+
+A full performance matrix for any selected country: revenue, bookings, ADR, and average stay length in a single cross-tab. Enables precise assessment of each country's guest value profile to support market prioritisation decisions.
+
+
+
+[CHART-11] Bookings by Continent
+Business Question: How are the hotel's guests distributed across the world's major regions, and is each region's revenue share proportional to its booking share?
+
+
+Business Insight:
+
+The continent-level view aggregates granular country data into a strategic regional picture. Two side-by-side pie charts reveal a crucial insight: whether each continent's share of bookings matches its share of revenue. A continent with 30% of bookings but only 18% of revenue indicates lower-value guests from that region. A continent with 10% of bookings but 20% of revenue signals high-value guests worth investing in specifically.
+
+
+This chart supports regional marketing investment decisions — allocating partnership budgets, sales team focus, and promotional channels based on where the highest-value demand originates, not just the highest volume.
+
+
+
+[CHART-12] Meal Plan Booking Analysis
+Business Question: Which meal plan options are guests choosing, and does meal plan selection correlate with revenue?
+
+
+Business Insight:
+
+Meal plan selection reflects both guest preference and the hotel's bundling strategy. The dual-axis area/line format shows how booking volume and revenue move together across meal plan categories — revealing whether higher-tier meal plans (Half Board, Full Board) attract disproportionate revenue relative to their booking share:
+
+
+• Bed & Breakfast (BB) typically dominates volume — the most flexible option, popular with guests who prefer to dine out. Lower ancillary revenue capture for the hotel.
+• Half Board (HB) and Full Board (FB) represent increasing F&B revenue bundling. Guests are more captive to the hotel's restaurant, improving ancillary revenue per guest.
+• Self Catering (SC) and None indicate minimal F&B engagement with the hotel — lowest ancillary revenue profile.
+
+Understanding the meal plan mix drives F&B planning — kitchen capacity, staffing levels, and food procurement — and informs decisions about whether to push bundled rate packages during high-demand periods.
+
+
+[DRILL-12] Meal Plan by Customer Type:
+
+Breaks down each meal plan by customer type (Transient, Group, Contract, Transient-Party). Reveals structural patterns — Groups often require Full Board packages; Transient guests predominantly choose BB. These customer-type/meal-plan relationships directly inform group sales package design and corporate contract rate structuring.
