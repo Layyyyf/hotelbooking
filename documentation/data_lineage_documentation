@@ -1,0 +1,350 @@
+Hotel Bookings — Data Lineage
+
+Project: Test_HotelBookings
+
+Database: MSSQL — HotelBooking
+
+Documented: 2026-06-24
+
+Layers: Source → Staging → Intermediate → Mart (Dimensions + Facts)
+
+
+
+Object Registry
+
+Layer	Object	Type	Rows	Notes
+Source	bookings	Table	119,390	Single raw source table
+Staging	stg_bookings	View	—	Rename + type cast layer
+Intermediate	int_bookings_flagged	View	—	Validity flagging layer
+Mart	dim_hotels	Table	2	City Hotel, Resort Hotel
+Mart	dim_arrival_date	Table	~1,500	Role-playing date dim (arrival)
+Mart	dim_status_date	Table	~1,500	Role-playing date dim (status)
+Mart	dim_reserved_room	Table	10	Room types A–H, L, P
+Mart	dim_assigned_room	Table	12	Room types A–H, I, K, L, P
+Mart	dim_country	Table	~178	ISO country codes + continent
+Mart	dim_booking_attributes	Table	~150	Degenerate attribute dim
+Mart	fct_bookings	Table	117,576	1,814 rows filtered via is_valid_booking
+
+
+Row Flow
+
+bookings (119,390)
+  │
+  ▼
+stg_bookings  [VIEW — rename, cast, clean]
+  │
+  ▼
+int_bookings_flagged  [VIEW — adds is_valid_booking flag]
+  │
+  ├──── WHERE is_valid_booking = 1 (117,576) ──────────────► fct_bookings (117,576)
+  │          1,814 rows excluded (is_valid_booking = 0)
+  │
+  ├── hotel             ─────────────────────────────────► dim_hotels         (2)
+  ├── arrival_date      ─────────────────────────────────► dim_arrival_date   (~1,500)
+  ├── reservation_status_date ────────────────────────────► dim_status_date    (~1,500)
+  ├── reserved_room_type ──────────────────────────────────► dim_reserved_room  (10)
+  ├── assigned_room_type ──────────────────────────────────► dim_assigned_room  (12)
+  ├── country           ─────────────────────────────────► dim_country        (~178)
+  └── market_segment + distribution_channel
+      + customer_type + deposit_type + meal ────────────► dim_booking_attributes (~150)
+
+
+Layer-by-Layer Lineage
+
+Layer 1 — Source Tables
+
+Raw data loaded into the dbo schema. No transformations applied at this layer. Single flat table containing all bookings across all years.
+
+
+Table	Key Column(s)	Notes
+bookings	(no surrogate key)	119,390 rows. Composite natural key implied by hotel + arrival_date + customer attributes. All booking years combined in one table. Children column has NULL values. Country has NULL values. is_canceled and is_repeated_guest stored as INT (0/1), not boolean. Mixed formats in arrival date components (split across three columns). reservation_status and reservation_status_date present in raw but excluded from mart.
+
+Key source columns:
+
+
+Source Column	Type	Notes
+hotel	varchar	'City Hotel' or 'Resort Hotel'
+is_canceled	int	0/1 — not natively BIT
+lead_time	int	Days between booking and arrival
+arrival_date_year	int	Year component only
+arrival_date_month	varchar	Month name e.g. 'July'
+arrival_date_week_number	int	ISO week
+arrival_date_day_of_month	int	Day of month
+stays_in_weekend_nights	int	Sat/Sun nights
+stays_in_week_nights	int	Mon–Fri nights
+adults	int	—
+children	float	NULLs present
+babies	int	—
+meal	varchar	BB, HB, FB, SC, Undefined
+country	varchar	ISO 3166-1 alpha-3. NULLs present.
+market_segment	varchar	Online TA, Offline TA/TO, Direct, Corporate, Groups, Complementary, Aviation
+distribution_channel	varchar	TA/TO, Direct, Corporate, GDS, Undefined
+is_repeated_guest	int	0/1 — not natively BIT
+previous_cancellations	int	—
+previous_bookings_not_canceled	int	—
+reserved_room_type	char(1)	Single letter code A–P
+assigned_room_type	char(1)	Single letter code A–P
+booking_changes	int	—
+deposit_type	varchar	No Deposit, Non Refund, Refundable
+agent	varchar	Nullable — agent ID or NULL
+company	varchar	Nullable — company ID or NULL
+days_in_waiting_list	int	—
+customer_type	varchar	Transient, Contract, Group, Transient-Party
+adr	decimal	Average Daily Rate
+required_car_parking_spaces	int	—
+total_of_special_requests	int	—
+reservation_status	varchar	Check-Out, Canceled, No-Show — not carried into mart
+reservation_status_date	date	Date of last status change
+
+
+Layer 2 — Staging (Views)
+
+All staging models are materialized='view' — no data stored, transformations applied at query time.
+
+
+#### stg_bookings ← bookings
+
+
+Transform	Detail
+Rename	snake_case throughout — stays_in_weekend_nights → stays_weekend_nights, stays_in_week_nights → stays_week_nights, total_of_special_requests → total_special_requests, reservation_status_date → status_date
+Date construction	arrival_date_year, arrival_date_month, arrival_date_day_of_month combined into single arrival_date DATE via DATEFROMPARTS()
+Type cast	is_canceled and is_repeated_guest cast to BIT
+NULL fill	COALESCE(children, 0) — NULL children → 0
+NULL fill	COALESCE(country, 'Unknown') — NULL country → 'Unknown'
+Pass-through	agent, company, reservation_status passed through at staging; excluded at mart layer
+
+
+Layer 3 — Intermediate (Views)
+
+materialized='view' — sits between staging and mart. Purpose: data quality flagging before mart load.
+
+
+#### int_bookings_flagged ← stg_bookings
+
+
+Transform	Detail
+Pass-through	All stg_bookings columns carried through unchanged
+Derived flag	is_valid_booking BIT — set to 0 for invalid bookings (zero-night stays, zero ADR non-complimentary records, or other DQ failures). 1,814 rows flagged as invalid.
+
+> fct_bookings reads WHERE is_valid_booking = 1, permanently excluding the 1,814 flagged rows. The 119,390 source rows reduce to 117,576 in the fact table.
+
+
+
+Layer 4 — Mart Dimensions
+
+All dimensions are materialized='table'.
+
+
+#### dim_hotels ← int_bookings_flagged
+
+
+Derived from the hotel column. Two distinct values only.
+
+
+Column	Source	Notes
+hotel_key	derived	Surrogate integer key
+hotel_name	hotel	'City Hotel', 'Resort Hotel'
+
+
+#### dim_arrival_date ← int_bookings_flagged
+
+
+Role-playing date dimension built from the arrival_date column. All date attributes derived — none exist in source as separate columns.
+
+
+Column	Derived From
+arrival_date_key	INT YYYYMMDD format
+date_day	Parsed arrival_date DATE
+year	YEAR(arrival_date)
+month_number	MONTH(arrival_date)
+month_name	DATENAME(month, arrival_date)
+quarter	DATEPART(quarter, arrival_date)
+week_of_year	arrival_date_week_number from source
+day_of_month	arrival_date_day_of_month from source
+day_of_week	DATEPART(weekday, arrival_date)
+day_name	DATENAME(weekday, arrival_date)
+is_weekend	CASE WHEN day_of_week IN (1,7) THEN 1 ELSE 0 END
+
+> ⚠️ dim_arrival_date contains dates earlier than any booking's actual arrival — lead time calculations reference past dates that appear in the table as pre-stay planning dates. This is expected behaviour for a date spine built from source arrival dates, not a generated calendar.
+
+
+
+#### dim_status_date ← int_bookings_flagged
+
+
+Role-playing date dimension built from the status_date column (reservation_status_date in source). Identical column structure to dim_arrival_date — same date attribute derivations applied to a different source date column.
+
+
+> Role-playing design: Both dim_arrival_date and dim_status_date are logically the same entity (a calendar date) but serve different foreign keys in fct_bookings. arrival_date_key links to dim_arrival_date; status_date_key links to dim_status_date. This prevents join fan-out when filtering by one date type while browsing by another.
+
+
+
+#### dim_reserved_room ← int_bookings_flagged
+
+
+Derived from the reserved_room_type column.
+
+
+Column	Source	Notes
+reserved_room_key	derived	Surrogate integer key
+room_type_code	reserved_room_type	Single character: A, B, C, D, E, F, G, H, L, P
+
+> ⚠️ Room Type P has 0 confirmed bookings in fct_bookings despite appearing as a reserved room type in source data. The dimension row exists but the fact table contains no records with reserved_room_key pointing to Room Type P. Likely a data entry artefact in the source system.
+
+
+
+#### dim_assigned_room ← int_bookings_flagged
+
+
+Derived from the assigned_room_type column. Contains 12 room type codes vs 10 in dim_reserved_room.
+
+
+Column	Source	Notes
+assigned_room_key	derived	Surrogate integer key
+room_type_code	assigned_room_type	Single character: A, B, C, D, E, F, G, H, I, K, L, P
+
+> ⚠️ Room types I and K appear as assigned room types but never as reserved room types. Guests cannot reserve these categories — they can only receive them as operational assignments. This indicates the hotel uses I and K as internal room codes for upgrades or operational reassignments not exposed to the booking interface.
+
+
+
+#### dim_country ← int_bookings_flagged
+
+
+Derived from the country column (ISO 3166-1 alpha-3 code).
+
+
+Column	Source	Notes
+country_key	derived	Surrogate integer key
+country_code	country	ISO 3-letter code e.g. 'PRT', 'GBR', 'DEU'
+continent	derived	Mapped from country code via lookup
+
+> ⚠️ Two non-standard continent values exist: 'Antarctica' (mapped from a small number of country codes with no meaningful geographic continent) and 'Unknown' (mapped from NULL country values in source, coalesced to 'Unknown' at staging). Neither represents real guest origin and should be excluded from geographic revenue analysis.
+
+
+
+#### dim_booking_attributes ← int_bookings_flagged
+
+
+Degenerate attribute dimension. Collapses five booking descriptors — all originally stored as flat columns on the booking row — into a single reusable dimension. Avoids storing repeated low-cardinality text strings on every fact row.
+
+
+Column	Source Column	Notes
+booking_attr_key	derived	Surrogate integer key
+market_segment	market_segment	7 distinct values
+distribution_channel	distribution_channel	5 distinct values incl. 'Undefined'
+customer_type	customer_type	4 distinct values: Transient, Contract, Group, Transient-Party
+deposit_type	deposit_type	3 distinct values: No Deposit, Non Refund, Refundable
+meal	meal	5 distinct values: BB, HB, FB, SC, Undefined
+
+
+Layer 5 — Mart Fact Table
+
+#### fct_bookings ← int_bookings_flagged + all dims
+
+
+Grain: One row per booking (one booking = one guest stay or cancellation event).
+
+Filter: WHERE is_valid_booking = 1 — excludes 1,814 flagged rows from int_bookings_flagged.
+
+Row count: 117,576
+
+
+Foreign Keys:
+
+
+FK Column	References	Join Type
+hotel_key	dim_hotels.hotel_key	INNER
+arrival_date_key	dim_arrival_date.arrival_date_key	INNER
+status_date_key	dim_status_date.arrival_date_key	INNER
+reserved_room_key	dim_reserved_room.reserved_room_key	INNER
+assigned_room_key	dim_assigned_room.assigned_room_key	INNER
+country_key	dim_country.country_key	INNER
+booking_attr_key	dim_booking_attributes.booking_attr_key	INNER
+
+Full Column Derivation Table:
+
+
+Column	Source Column	Derived?	Notes
+booking_key	—	✅ Surrogate	Auto-generated integer surrogate key
+hotel_key	hotel	✅ FK	Lookup against dim_hotels
+arrival_date_key	arrival_date	✅ FK + derived	INT YYYYMMDD format → FK to dim_arrival_date
+status_date_key	status_date	✅ FK + derived	INT YYYYMMDD format → FK to dim_status_date
+reserved_room_key	reserved_room_type	✅ FK	Lookup against dim_reserved_room
+assigned_room_key	assigned_room_type	✅ FK	Lookup against dim_assigned_room
+country_key	country	✅ FK	Lookup against dim_country
+booking_attr_key	market_segment + distribution_channel + customer_type + deposit_type + meal	✅ FK	Composite lookup against dim_booking_attributes
+is_canceled	is_canceled	Pass-through	BIT — cast at staging
+is_canceled_float	is_canceled	✅ Derived	CAST(is_canceled AS FLOAT) — enables SUM in BI tools that cannot aggregate BIT
+lead_time	lead_time	Pass-through	Days between booking date and arrival date
+arrival_date_week_number	arrival_date_week_number	Pass-through	ISO week of arrival
+arrival_date_day_of_month	arrival_date_day_of_month	Pass-through	Day of month of arrival
+stays_weekend_nights	stays_in_weekend_nights	Renamed	Saturday + Sunday nights
+stays_week_nights	stays_in_week_nights	Renamed	Monday–Friday nights
+total_nights	stays_weekend_nights + stays_week_nights	✅ Derived	Total length of stay in nights
+adults	adults	Pass-through	—
+children	children	Pass-through	NULLs resolved to 0 at staging
+babies	babies	Pass-through	—
+total_guests	adults + children + babies	✅ Derived	Total occupants per booking
+adr	adr	Pass-through	Average Daily Rate in source currency
+adr_adjusted	adr	✅ Derived	CASE WHEN is_canceled = 1 THEN 0 ELSE adr END — zero for canceled bookings, reflects realised rate only
+estimated_revenue	adr_adjusted × total_nights	✅ Derived	adr_adjusted * total_nights — zero for all canceled bookings by design
+is_repeated_guest	is_repeated_guest	Pass-through	BIT — cast at staging
+is_repeated_guest_int	is_repeated_guest	✅ Derived	CAST(is_repeated_guest AS INT) — enables SUM in BI tools
+is_room_type_changed	reserved_room_type vs assigned_room_type	✅ Derived	CASE WHEN reserved_room_type != assigned_room_type THEN 1 ELSE 0 END — BIT
+is_room_type_changed_int	is_room_type_changed	✅ Derived	CAST(is_room_type_changed AS INT) — enables SUM in BI tools
+previous_cancellations	previous_cancellations	Pass-through	Historical cancellation count for this guest
+previous_bookings_not_canceled	previous_bookings_not_canceled	Pass-through	Historical confirmed booking count for this guest
+historical_cancellation_rate	previous_cancellations / (previous_cancellations + previous_bookings_not_canceled)	✅ Derived	previous_cancellations / NULLIF(previous_cancellations + previous_bookings_not_canceled, 0) — NULL for 92.2% of rows (first-time guests with no prior history)
+booking_changes	booking_changes	Pass-through	Number of amendments made to booking before arrival
+days_in_waiting_list	days_in_waiting_list	Pass-through	Days on waiting list before confirmation
+required_car_parking_spaces	required_car_parking_spaces	Pass-through	—
+total_special_requests	total_of_special_requests	Renamed	Count of special requests submitted
+is_valid_booking	—	✅ Derived (int layer)	BIT flag set in int_bookings_flagged. Rows where = 0 are excluded from fct_bookings entirely.
+
+
+What is NOT in the Mart
+
+The following source columns were intentionally excluded from all mart objects:
+
+
+Source Column	Reason for Exclusion
+reservation_status	Operational status ('Check-Out', 'Canceled', 'No-Show') — superseded by is_canceled BIT in fct_bookings. Adding it would require another dimension or degenerate column; business value is low given is_canceled covers the primary use case.
+agent	High-cardinality nullable agent ID with no reference table in source. Not suitable for analysis without a clean agent dimension.
+company	High-cardinality nullable company ID with no reference table in source. Same issue as agent.
+
+
+Lineage Diagram
+
+%% title: Hotel Bookings — Full Data Lineage
+graph LR
+  classDef source fill:#1a2a3e,stroke:#339af0,color:#e0e0e0
+  classDef staging fill:#1a3a2e,stroke:#20c997,color:#e0e0e0
+  classDef intermediate fill:#2e2518,stroke:#fd7e14,color:#e0e0e0
+  classDef mart fill:#1e2050,stroke:#4c6ef5,color:#e0e0e0
+
+  src[(fa:fa-database bookings\n119,390 rows)]
+
+  src --> stg_bookings
+  stg_bookings --> int_bookings_flagged
+
+  int_bookings_flagged --> fct_bookings
+  int_bookings_flagged --> dim_hotels
+  int_bookings_flagged --> dim_arrival_date
+  int_bookings_flagged --> dim_status_date
+  int_bookings_flagged --> dim_reserved_room
+  int_bookings_flagged --> dim_assigned_room
+  int_bookings_flagged --> dim_country
+  int_bookings_flagged --> dim_booking_attributes
+
+  dim_hotels --> fct_bookings
+  dim_arrival_date --> fct_bookings
+  dim_status_date --> fct_bookings
+  dim_reserved_room --> fct_bookings
+  dim_assigned_room --> fct_bookings
+  dim_country --> fct_bookings
+  dim_booking_attributes --> fct_bookings
+
+  class src source
+  class stg_bookings staging
+  class int_bookings_flagged intermediate
+  class fct_bookings,dim_hotels,dim_arrival_date,dim_status_date,dim_reserved_room,dim_as
